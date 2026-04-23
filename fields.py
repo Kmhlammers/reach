@@ -1,0 +1,21 @@
+def record_to_fields(record):
+    return {
+        "Title": record.get("substance") or "REACH",
+        "Suppliername": record.get("suppliername"),
+        "Casnumber": record.get("casnumber"),
+        "Substance": record.get("substance"),
+        "Totalkg": record.get("totalkg"),
+        "Totaltonnes": record.get("totaltonnes"),
+        "DATE": record.get("date"),
+        "Filelink": record.get("filelink"),
+        "Sheet": record.get("sheet"),
+        "Processed": record.get("processed"),
+        "DocumentFilePath": record.get("documentfilepath"),
+        "FileId": record.get("file_id"),
+        "FileName": record.get("file_name"),
+        "RowKey": record.get("row_key"),
+        "TotalkgCurrent": record.get("totalkgcurrent"),
+        "ProcessedAt": record.get("processedat"),
+        "ImportStatus": record.get("importstatus"),
+        "ImportMessage": record.get("importmessage"),
+    }
