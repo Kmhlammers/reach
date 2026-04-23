@@ -8,3 +8,6 @@ msal
 openpyxl
 azure-storage-blob
 python-dotenv
+streamlit
+supabase
+pandas
