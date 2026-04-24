@@ -7,7 +7,7 @@ import streamlit as st
 
 from reach.parser import parse_workbook_bytes
 from reach.supabase_store import (
-    create_file_row,
+    create_or_replace_file,
     delete_file,
     delete_records,
     get_supabase_client,
@@ -108,7 +108,7 @@ with tab_upload:
             if not st.session_state.get(_autosave_key(file_sha256), False):
                 try:
                     with st.spinner("Auto-saving to Supabase..."):
-                        file_id = create_file_row(
+                        file_id, replaced = create_or_replace_file(
                             sb,
                             source_type="upload",
                             source_ref=None,
@@ -120,7 +120,12 @@ with tab_upload:
                         issues_written = insert_issues(sb, file_id=file_id, issues=parsed["issues"])
                     st.session_state[_autosave_key(file_sha256)] = True
                     st.success(
-                        f"Auto-saved. file_id={file_id}. Records written: {written} (attempted {attempted}). Issues written: {issues_written}."
+                        (
+                            f"Replaced existing upload (same file). file_id={file_id}. "
+                            f"Records written: {written} (attempted {attempted}). Issues written: {issues_written}."
+                            if replaced
+                            else f"Auto-saved. file_id={file_id}. Records written: {written} (attempted {attempted}). Issues written: {issues_written}."
+                        )
                     )
                 except Exception as exc:
                     st.exception(exc)

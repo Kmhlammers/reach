@@ -43,6 +43,51 @@ def create_file_row(
     return resp.data[0]["id"]
 
 
+def get_file_by_sha256(sb: Client, *, file_sha256: str) -> Optional[Dict[str, Any]]:
+    resp = sb.table("reach_files").select("*").eq("file_sha256", file_sha256).order("created_at", desc=True).limit(1).execute()
+    rows = resp.data or []
+    return rows[0] if rows else None
+
+
+def clear_file_data(sb: Client, *, file_id: str) -> None:
+    # Remove existing rows so a re-upload doesn't double count.
+    sb.table("reach_records").delete().eq("file_id", file_id).execute()
+    sb.table("reach_issues").delete().eq("file_id", file_id).execute()
+
+
+def create_or_replace_file(
+    sb: Client,
+    *,
+    source_type: str,
+    source_ref: Optional[str],
+    file_name: str,
+    file_sha256: str,
+    notes: Optional[str] = None,
+) -> Tuple[str, bool]:
+    """
+    Returns (file_id, replaced_existing).
+    If a file with the same sha256 already exists, we reuse it and clear its data.
+    """
+    existing = get_file_by_sha256(sb, file_sha256=file_sha256)
+    if existing and existing.get("id"):
+        file_id = existing["id"]
+        clear_file_data(sb, file_id=file_id)
+        # keep latest filename for display
+        sb.table("reach_files").update({"file_name": file_name, "source_type": source_type, "source_ref": source_ref, "notes": notes}).eq(
+            "id", file_id
+        ).execute()
+        return file_id, True
+
+    file_id = create_file_row(
+        sb,
+        source_type=source_type,
+        source_ref=source_ref,
+        file_name=file_name,
+        file_sha256=file_sha256,
+        notes=notes,
+    )
+    return file_id, False
+
 def upsert_records(sb: Client, *, file_id: str, records: List[Dict[str, Any]]) -> Tuple[int, int]:
     if not records:
         return 0, 0
