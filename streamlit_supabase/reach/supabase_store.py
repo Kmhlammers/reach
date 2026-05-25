@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
@@ -151,6 +152,54 @@ def delete_records(sb: Client, *, record_ids: List[str]) -> int:
     if not record_ids:
         return 0
     resp = sb.table("reach_records").delete().in_("id", record_ids).execute()
+    return len(resp.data or [])
+
+
+def records_with_same_certificate(
+    records: List[Dict[str, Any]],
+    *,
+    record_ids: List[str],
+    certificate_file_name: str,
+) -> List[Dict[str, Any]]:
+    """Rows that already have certificate_added with the same file name."""
+    id_set = {str(rid) for rid in record_ids}
+    target = str(certificate_file_name or "").strip().casefold()
+    if not target:
+        return []
+
+    duplicates: List[Dict[str, Any]] = []
+    for rec in records:
+        rid = str(rec.get("id") or "")
+        if rid not in id_set:
+            continue
+        if not rec.get("certificate_added"):
+            continue
+        existing = str(rec.get("certificate_file_name") or "").strip().casefold()
+        if existing == target:
+            duplicates.append(rec)
+    return duplicates
+
+
+def mark_records_certificate_added(
+    sb: Client,
+    *,
+    record_ids: List[str],
+    certificate_file_name: str,
+) -> int:
+    if not record_ids:
+        return 0
+    now_iso = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "certificate_added": True,
+        "certificate_file_name": certificate_file_name,
+        "certificate_added_at": now_iso,
+    }
+    resp = (
+        sb.table("reach_records")
+        .update(payload)
+        .in_("id", record_ids)
+        .execute()
+    )
     return len(resp.data or [])
 
 

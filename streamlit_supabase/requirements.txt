@@ -3,3 +3,7 @@ supabase
 openpyxl
 python-dotenv
 pandas
+pdfplumber
+pymupdf
+pytesseract
+pdf2image

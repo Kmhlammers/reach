@@ -40,7 +40,11 @@ create table if not exists public.reach_records (
   import_status text not null default 'processed',
   import_message text null,
 
-  processed_at timestamptz null
+  processed_at timestamptz null,
+
+  certificate_added boolean not null default false,
+  certificate_file_name text null,
+  certificate_added_at timestamptz null
 );
 
 create unique index if not exists reach_records_file_rowkey_uq

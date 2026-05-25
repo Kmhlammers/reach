@@ -21,6 +21,7 @@ pip install -r streamlit_supabase/requirements.txt
 
 - Create a new Supabase project.
 - In the Supabase SQL editor, run `streamlit_supabase/supabase/schema.sql`.
+- If the project already existed before certificate support, also run `streamlit_supabase/supabase/migration_certificate_columns.sql`.
 
 3) Provide secrets for the app (choose one):
 
@@ -74,6 +75,10 @@ Once deployed to Streamlit Community Cloud (or Streamlit in your own infra), you
     - A GitHub Action / cron worker, or
     - A small container job (Fly.io/Render) that calls the same parsing module.
 
+- **Certificate PDFs**
+  - Upload PDF certificates on the **REACHSUMMARY** tab. The app extracts CAS numbers and supplier names, then sets `certificate_added` on matching rows.
+  - Run `supabase/migration_certificate_columns.sql` once on existing Supabase projects.
+
 - **Email/cert workflow**
   - Your current model has fields like `Sendcertificate` and `Mailopzoeken`. Decide the new workflow:
     - Keep as flags in Postgres and build a “queue” UI, plus an email-sender job.
@@ -81,11 +86,32 @@ Once deployed to Streamlit Community Cloud (or Streamlit in your own infra), you
 - **Observability**
   - Add structured logging and error reporting (Sentry, Logtail, etc.) for production.
 
+## Certificate PDFs
+
+On the **REACHSUMMARY** tab:
+
+1. Upload one or more certificate PDFs.
+2. Click **Match certificates to records**.
+3. The app extracts CAS numbers and supplier names from the PDF text, matches them to saved REACH rows (supplier + CAS), and sets **Certificate added** to true.
+
+Matching reads **supplier names and CAS numbers from inside the PDF** (never from the filename). Text extraction tries pdfplumber, then PyMuPDF, then OCR for scanned documents.
+
+For scanned (image) certificates, install system dependencies:
+
+```bash
+# macOS
+brew install tesseract tesseract-lang poppler
+```
+
+Then reinstall Python deps: `pip install -r requirements.txt`
+
+Each certificate updates **at most one row**: supplier name must appear inside the PDF, then match **supplier + CAS** when CAS is present. Without CAS in the PDF, matching only works if exactly one database row exists for that supplier.
+
 ## App pages
 
-This Streamlit app uses multiple pages:
+This Streamlit app uses multiple tabs:
 
 - `Upload & Files`: upload workbooks (auto-saves) and delete/update file metadata
-- `Records`: edit/delete individual entries
+- `REACHSUMMARY`: view/edit records, upload certificates, filter by certificate added
 - `Totals`: totals per CAS (computed from all records)
 
